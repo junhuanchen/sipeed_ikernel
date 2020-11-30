@@ -31,7 +31,7 @@ except ImportError:
 
 from tornado.log import LogFormatter
 
-from remote_ikernel import RIK_PREFIX, __version__
+from sipeed_ikernel import RIK_PREFIX, __version__
 
 
 # All the ports that need to be forwarded
@@ -51,7 +51,7 @@ def _setup_logging(verbose):
     notebook messages. Will clear any existing handlers too.
     """
 
-    log = logging.getLogger("remote_ikernel")
+    log = logging.getLogger("sipeed_ikernel")
     if verbose:
         log.setLevel(logging.DEBUG)
     else:
@@ -87,68 +87,6 @@ def _setup_logging(verbose):
     log.flush = _pass
 
     return log
-
-
-def get_password(prompt):
-    """
-    Interact with the user and ask for a password.
-
-    Parameters
-    ----------
-    prompt : str
-        Text to show the user when asking for a password.
-
-    Returns
-    -------
-    password : str
-        The text input by the user.
-
-    """
-
-    if "SSH_ASKPASS" in os.environ:
-        password = subprocess.check_output([os.environ["SSH_ASKPASS"], prompt])
-    else:
-        raise RuntimeError("Unable to get password, try setting SSH_ASKPASS")
-
-    return password
-
-
-def check_password(connection):
-    """
-    Check to see if a newly spawned process requires a password and retrieve
-    it from the user if it does. Send the password to the process and
-    check repeatedly for more passwords.
-
-    Parameters
-    ----------
-    connection : pexpect.spawn
-        The connection to check. Requires an expect and sendline method.
-
-    """
-    # This will loop until no more passwords are encountered
-    while True:
-        try:
-            # Return all output as soon as anything arrives.
-            # Assume that immediate output includes the
-            # request for a password, or goes straight to
-            # a prompt.
-            text = connection.read_nonblocking(99999, timeout=-1)
-        except pexpect.TIMEOUT:
-            # Nothing more to read from the output
-            return
-
-        re_passphrase = re.search(b"Enter passphrase .*:", text)
-        re_password = re.search(b".*@.* password:", text)
-        if re_passphrase:
-            passphrase = get_password(re_passphrase.group())
-            connection.sendline(passphrase)
-        elif re_password:
-            password = get_password(re_password.group())
-            connection.sendline(password)
-        else:
-            # No more passwords or passphrases requested
-            return
-
 
 def extract_uuid(filename):
     """
@@ -194,6 +132,7 @@ class RemoteIKernel(object):
         workdir=None,
         tunnel=True,
         host=None,
+        pswd=None,
         precmd=None,
         launch_args=None,
         verbose=False,
@@ -220,6 +159,7 @@ class RemoteIKernel(object):
         self.pe = pe
         self.kernel_cmd = kernel_cmd
         self.host = host  # Name of node to be changed once connection is ready.
+        self.pswd = pswd
         self.tunnel_hosts = tunnel_hosts
         self.connection = None  # will usually be a spawned pexpect
         self.workdir = workdir
@@ -264,6 +204,67 @@ class RemoteIKernel(object):
             if self.tunnel:
                 self.tunnel_connection()
 
+    def get_password(self, prompt):
+        """
+        Interact with the user and ask for a password.
+
+        Parameters
+        ----------
+        prompt : str
+            Text to show the user when asking for a password.
+
+        Returns
+        -------
+        password : str
+            The text input by the user.
+
+        """
+
+        if "SSH_ASKPASS" in os.environ:
+            password = subprocess.check_output([os.environ["SSH_ASKPASS"], prompt])
+        elif type(self.pswd) == str:
+            password = self.pswd
+        else:
+            raise RuntimeError("Unable to get password, try setting SSH_ASKPASS")
+
+        return password
+
+
+    def check_password(self, connection):
+        """
+        Check to see if a newly spawned process requires a password and retrieve
+        it from the user if it does. Send the password to the process and
+        check repeatedly for more passwords.
+
+        Parameters
+        ----------
+        connection : pexpect.spawn
+            The connection to check. Requires an expect and sendline method.
+
+        """
+        # This will loop until no more passwords are encountered
+        while True:
+            try:
+                # Return all output as soon as anything arrives.
+                # Assume that immediate output includes the
+                # request for a password, or goes straight to
+                # a prompt.
+                text = connection.read_nonblocking(99999, timeout=-1)
+            except pexpect.TIMEOUT:
+                # Nothing more to read from the output
+                return
+            re_passphrase = re.search(b"Enter passphrase .*:", text)
+            re_password = re.search(b".*@.* password:", text)
+            if re_passphrase:
+                passphrase = self.get_password(re_passphrase.group())
+                connection.sendline(passphrase)
+            elif re_password:
+                password = self.get_password(re_password.group())
+                connection.sendline(password)
+            else:
+                # No more passwords or passphrases requested
+                return
+
     def get_cmd(self, default):
         """
         Check if cmd has been overridden and return that, otherwise use the
@@ -285,7 +286,7 @@ class RemoteIKernel(object):
         """
         # TODO: does this need to be more than several ssh commands?
         self._spawn(self.tunnel_hosts_cmd)
-        check_password(self.connection)
+        self.check_password(self.connection)
 
     def launch_local(self):
         """
@@ -325,7 +326,7 @@ class RemoteIKernel(object):
         )
         self.log.info("Login command: '{0}'.".format(login_cmd))
         self._spawn(login_cmd)
-        check_password(self.connection)
+        self.check_password(self.connection)
 
     def launch_pbs(self):
         """
@@ -333,7 +334,7 @@ class RemoteIKernel(object):
         will use the object's connection_info and kernel_command.
         """
         self.log.info("Launching kernel through PBS/Torque.")
-        job_name = "remote_ikernel"
+        job_name = "sipeed_ikernel"
         if self.cpus > 1:
             cpu_string = "-l ncpus={cpus}".format(cpus=self.cpus)
         else:
@@ -369,7 +370,7 @@ class RemoteIKernel(object):
         also be replaced with 'qrsh' on some systems.
         """
         self.log.info("Launching kernel through GridEngine.")
-        job_name = "remote_ikernel"
+        job_name = "sipeed_ikernel"
         if self.cpus > 1:
             pe_string = "-pe {pe} {cpus}".format(pe=self.pe, cpus=self.cpus)
         else:
@@ -397,7 +398,7 @@ class RemoteIKernel(object):
         pexpect to the class to interact with it.
         """
         self.log.info("Launching kernel through SLURM.")
-        job_name = "remote_ikernel"
+        job_name = "sipeed_ikernel"
         if self.cpus > 1:
             tasks = "--cpus-per-task {cpus}".format(cpus=self.cpus)
         else:
@@ -426,7 +427,7 @@ class RemoteIKernel(object):
         mode. Bind the spawned pexpect to the class to interact with it.
         """
         self.log.info("Launching kernel through Platform LSF.")
-        job_name = "remote_ikernel"
+        job_name = "sipeed_ikernel"
         if self.cpus > 1:
             tasks = "-n {cpus}".format(cpus=self.cpus)
         else:
@@ -520,7 +521,7 @@ class RemoteIKernel(object):
         # connection info should have the ports being used
         tunnel_command = self.tunnel_cmd.format(**self.connection_info)
         tunnel = pexpect_spawn(tunnel_command, logfile=self.log)
-        check_password(tunnel)
+        self.check_password(tunnel)
 
         self.log.info(
             "Setting up tunnels on ports: {0}.".format(
@@ -694,6 +695,7 @@ def start_remote_kernel():
     )
     parser.add_argument("--workdir")
     parser.add_argument("--host")
+    parser.add_argument("--pswd")
     parser.add_argument("--precmd")
     parser.add_argument("--launch-args")
     parser.add_argument("--verbose", action="store_true")
@@ -717,6 +719,7 @@ def start_remote_kernel():
         kernel_cmd=args.kernel_cmd,
         workdir=args.workdir,
         host=args.host,
+        pswd=args.pswd,
         precmd=args.precmd,
         launch_args=args.launch_args,
         verbose=args.verbose,

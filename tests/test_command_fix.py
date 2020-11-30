@@ -5,7 +5,7 @@ Check the special cases where the kernel command needs fixing up.
 
 """
 
-from remote_ikernel.manage import command_fix
+from sipeed_ikernel.manage import command_fix
 
 
 def test_irkernel_unescaped(capsys):
@@ -103,7 +103,7 @@ def test_fix_in_manage():
     # interface, kernel_cmd and name are required...
     # Break kernel_cmd
     result = env.run(
-        "remote_ikernel",
+        "sipeed_ikernel",
         "manage",
         "--add",
         "--interface=local",
@@ -113,7 +113,7 @@ def test_fix_in_manage():
     assert "Escaping IRkernel" in result.stdout
 
     result = env.run(
-        "remote_ikernel",
+        "sipeed_ikernel",
         "manage",
         "--add",
         "--interface=local",
@@ -123,7 +123,7 @@ def test_fix_in_manage():
     assert "unescaped brackets" in result.stdout
 
     result = env.run(
-        "remote_ikernel",
+        "sipeed_ikernel",
         "manage",
         "--add",
         "--interface=local",
@@ -132,5 +132,5 @@ def test_fix_in_manage():
     )
     assert "missing quotation marks" in result.stdout
 
-    result = env.run("remote_ikernel", "manage", "--delete", "rik_local_name")
+    result = env.run("sipeed_ikernel", "manage", "--delete", "rik_local_name")
     assert "Removed kernel" in result.stdout

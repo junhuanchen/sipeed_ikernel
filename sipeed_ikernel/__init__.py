@@ -1,5 +1,5 @@
 """
-remote_ikernel
+sipeed_ikernel
 
 Run kernels remotely for IPython/Jupyter notebooks.
 

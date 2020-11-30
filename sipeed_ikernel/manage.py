@@ -1,8 +1,8 @@
 """
 manage.py
 
-Manage the kernels available to remote_ikernel.
-Run ``remote_ikernel manage`` to see a list of commands.
+Manage the kernels available to sipeed_ikernel.
+Run ``sipeed_ikernel manage`` to see a list of commands.
 
 """
 
@@ -20,11 +20,11 @@ from os import path
 from subprocess import list2cmdline
 
 # How we identify kernels that rik will manage
-from remote_ikernel import RIK_PREFIX, __version__
+from sipeed_ikernel import RIK_PREFIX, __version__
 
 # These go through a compatibility layer to work with IPython and Jupyter
-from remote_ikernel.compat import kernelspec as ks
-from remote_ikernel.compat import tempdir
+from sipeed_ikernel.compat import kernelspec as ks
+from sipeed_ikernel.compat import tempdir
 
 # When Python 2 pipes into something else, there is no encoding
 # set. Assume that it is utf-8 so that scripttest works as expected.
@@ -137,8 +137,8 @@ def show_kernel(kernel_name):
     print("|  * Name: {0}".format(spec.display_name))
     print("|  * Kernel command: {0}".format(list2cmdline(spec.argv)))
     print(
-        "|  * remote_ikernel command: {0}".format(
-            list2cmdline(kernel_json["remote_ikernel_argv"])
+        "|  * sipeed_ikernel command: {0}".format(
+            list2cmdline(kernel_json["sipeed_ikernel_argv"])
         )
     )
     print("|  * Raw json: {0}".format(json.dumps(kernel_json, indent=2)))
@@ -155,6 +155,7 @@ def add_kernel(
     system=False,
     workdir=None,
     host=None,
+    pswd=None,
     precmd=None,
     launch_args=None,
     tunnel_hosts=None,
@@ -167,7 +168,7 @@ def add_kernel(
     """
     kernel_name = []
     display_name = []
-    argv = [sys.executable, "-m", "remote_ikernel"]
+    argv = [sys.executable, "-m", "sipeed_ikernel"]
 
     # How to connect to kernel
     if interface == "local":
@@ -198,6 +199,8 @@ def add_kernel(
             raise KeyError("A host is required for ssh.")
         argv.extend(["--interface", "ssh"])
         argv.extend(["--host", host])
+        if pswd != None:
+            argv.extend(["--pswd", pswd])
         kernel_name.append("ssh")
         kernel_name.append(host)
         display_name.append("SSH")
@@ -252,7 +255,7 @@ def add_kernel(
     kernel_cmd = kernel_cmd.replace("{connection_file}", "{host_connection_file}")
     argv.extend(["--kernel_cmd", kernel_cmd])
 
-    # remote_ikernel needs the connection file too
+    # sipeed_ikernel needs the connection file too
     argv.append("{connection_file}")
 
     # Prefix all kernels with 'rik_' for management.
@@ -270,7 +273,7 @@ def add_kernel(
 
     # Put the commandline in so that '--show' will show how to recreate
     # the kernel
-    kernel_json["remote_ikernel_argv"] = sys.argv
+    kernel_json["sipeed_ikernel_argv"] = sys.argv
 
     # False attempts a system install, otherwise install as the current user
     if system:
@@ -292,7 +295,7 @@ def add_kernel(
 
 def manage():
     """
-    Manage the available remote_ikernels.
+    Manage the available sipeed_ikernels.
 
     All the options are pulled from arguments so we take no
     arguments here.
@@ -361,6 +364,12 @@ def manage():
         "-x",
         help="The hostname or ip address running through an SSH connection. "
         "For non standard ports use host:port.",
+    )
+    parser.add_argument(
+        "--pswd",
+        "-p",
+        help="The password running through an SSH connection. "
+        "Just for ease of use.",
     )
     parser.add_argument(
         "--interface",
@@ -442,6 +451,7 @@ def manage():
             args.system,
             args.workdir,
             args.host,
+            args.pswd,
             args.remote_precmd,
             args.remote_launch_args,
             args.tunnel_hosts,

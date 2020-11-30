@@ -8,7 +8,7 @@ available.
 
 from uuid import UUID
 
-from remote_ikernel.kernel import extract_uuid, RemoteIKernel
+from sipeed_ikernel.kernel import extract_uuid, RemoteIKernel
 
 
 def test_extract_uuid():

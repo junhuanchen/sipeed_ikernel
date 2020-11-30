@@ -9,13 +9,13 @@ import sys
 
 
 def main():
-    """Enter into remote_ikernel."""
+    """Enter into sipeed_ikernel."""
     if "manage" in sys.argv:
-        from remote_ikernel.manage import manage
+        from sipeed_ikernel.manage import manage
 
         manage()
     else:
-        from remote_ikernel.kernel import start_remote_kernel
+        from sipeed_ikernel.kernel import start_remote_kernel
 
         start_remote_kernel()
 

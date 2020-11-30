@@ -14,16 +14,16 @@ started, SSH tunnels are created for the communication ports are so the
 notebook can talk to the kernel as if it was local.
 
 Commands for managing the kernels are included. It is also possible to use
-``remote_ikernel`` to manage kernels from different virtual environments or
+``sipeed_ikernel`` to manage kernels from different virtual environments or
 different python implementations.
 
-Install with ``pip install remote_ikernel``. Requires ``notebook`` (as part
+Install with ``pip install sipeed_ikernel``. Requires ``notebook`` (as part
 of Jupyter), version 4.0 or greater and ``pexpect``. Passwordless ``ssh``
 to the all the remote machines is also recommended (e.g. nodes on a cluster).
 
 .. warning::
 
-   ``remote_ikernel`` opens multiple connections across several machines
+   ``sipeed_ikernel`` opens multiple connections across several machines
    to tunnel communication ports. If you have concerns about security or
    excessive use of resources, please consult your systems administrator
    before using this software.
@@ -40,19 +40,19 @@ to the all the remote machines is also recommended (e.g. nodes on a cluster).
 
    # Install the module ('python setup.py install' also works)
 
-   pip install remote_ikernel
+   pip install sipeed_ikernel
 
 .. code:: shell
 
    # Set up the kernels you'd like to use
 
-   remote_ikernel manage
+   sipeed_ikernel manage
 
 .. code:: shell
 
    # Add a new kernel running through GrideEngine
 
-   remote_ikernel manage --add \
+   sipeed_ikernel manage --add \
       --kernel_cmd="ipython kernel -f {connection_file}" \
       --name="Python 2.7" --cpus=2 --pe=smp --interface=sge
 
@@ -60,17 +60,24 @@ to the all the remote machines is also recommended (e.g. nodes on a cluster).
 
    # Add an SSH connection to a remote machine running IJulia
 
-   remote_ikernel manage --add \
+   sipeed_ikernel manage --add \
       --kernel_cmd="/home/me/julia-903644385b/bin/julia -i --startup-file=yes --color=yes /home/me/.julia/v0.6/IJulia/src/kernel.jl {connection_file}" \
       --name="IJulia 0.6.0" --interface=ssh \
       --host=me@remote.machine --workdir='/home/me/Workdir' --language=julia
+
+.. code:: example
+
+   sipeed_ikernel manage --add \
+      --kernel_cmd="ipython kernel -f {connection_file}" \
+      --name="Remote Python" --interface=ssh \
+      --host=ubuntu@localhost --pswd root
 
 .. code:: shell
 
    # Set up kernels for your local virtual environments that can be run
    # from a single notebook server.
 
-   remote_ikernel manage --add \
+   sipeed_ikernel manage --add \
       --kernel_cmd="/home/me/Virtualenvs/dev/bin/ipython kernel -f {connection_file}" \
       --name="Python 2 (venv:dev)" --interface=local
 
@@ -79,14 +86,15 @@ to the all the remote machines is also recommended (e.g. nodes on a cluster).
    # Connect to a SLURM cluster through a gateway machine (to get into a
    # local network) and cluster frontend machine (where the sqsub runs from).
 
-   remote_ikernel manage --add \
+   sipeed_ikernel manage --add \
       --kernel_cmd="ipython kernel -f {connection_file}" \
       --name="Python 2.7" --cpus=4 --interface=slurm \
       --tunnel-hosts gateway.machine cluster.frontend
 
 
+
 The kernel spec files will be installed so that the new kernel appears in
-the drop-down list in the notebook. ``remote_ikernel manage`` also has options
+the drop-down list in the notebook. ``sipeed_ikernel manage`` also has options
 to show and delete existing kernels.
 
 
@@ -111,6 +119,11 @@ to be added for each hop. Note, for the security conscious, that idle kernels
 on multiplexed connections allow new ssh connections to be started without a
 password.
 
+
+Changes for v1.4
+================
+
+  * Option ``--pswd root``. allow ssh password.
 
 Changes for v0.4
 ================
@@ -152,7 +165,7 @@ Changes for v0.2
   * Connect to a host with ssh, slurm, or local kernels.
   * Changed prefix to ``rik_``.
   * kernel_cmd now requires the ``{connection_file}`` argument.
-  * ``remote_ikernel manage --show`` command to show existing kernels.
+  * ``sipeed_ikernel manage --show`` command to show existing kernels.
   * Specify the working directory on the remote machine with ``--workdir``.
   * ``kernel-uuid.json`` is copied to the working director for systems where
     there is no access to the frontend filesystem.
